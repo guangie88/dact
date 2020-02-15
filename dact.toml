@@ -1,0 +1,13 @@
+[rustc]
+help = "Get version of rustc"
+image = "clux/muslrust:stable"
+command = ["rustc", "--version"]
+
+[cargo]
+help = "Get version of cargo"
+image = "clux/muslrust:stable"
+command = ["cargo", "--version"]
+
+  [cargo.envs]
+  OPT_LEVEL = "3"
+  DEBUG = "true"
