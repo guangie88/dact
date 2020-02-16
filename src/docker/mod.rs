@@ -12,12 +12,17 @@ use which::which;
 pub struct DockerRun {
     pub image: String,
     pub help: Option<String>,
+
+    pub interactive: Option<bool>,
+    pub tty: Option<bool>,
+
     pub command: Option<Vec<String>>,
-    pub entrypoint: Option<Vec<String>>,
+    pub entrypoint: Option<String>,
     pub envs: Option<HashMap<String, String>>,
     pub env_file: Option<PathBuf>,
     pub volumes: Option<Vec<String>>,
     pub user: Option<String>,
+    pub extra_flags: Option<Vec<String>>,
 }
 
 pub fn interpolate_host_envs(
@@ -48,30 +53,77 @@ impl DockerRun {
                 .collect()
         });
 
+        let entrypoint_flag =
+            self.entrypoint.as_ref().map_or(vec![], |entrypoint| {
+                vec![
+                    "--entrypoint".to_string(),
+                    interpolate_host_envs(entrypoint, kv)
+                        .expect("Invalid env for entrypoint"),
+                ]
+            });
+
         let env_flags = self.envs.as_ref().map_or(vec![], |envs| {
             envs.iter()
-                .map(|(k, v)| {
-                    interpolate_host_envs(&format!("-e {}={}", k, v), kv)
-                        .expect("Invalid env for envs")
+                .flat_map(|(k, v)| {
+                    vec![
+                        "-e".to_string(),
+                        interpolate_host_envs(&format!("{}={}", k, v), kv)
+                            .expect("Invalid env for envs"),
+                    ]
                 })
                 .collect()
         });
 
         let env_file_flags =
             self.env_file.as_ref().map_or(vec![], |env_file| {
-                vec![interpolate_host_envs(
-                    &format!("--env-file {}", env_file.display()),
-                    kv,
-                )
-                .expect("Invalid env for env-file")]
+                vec![
+                    "--env-file".to_string(),
+                    interpolate_host_envs(
+                        &format!("{}", env_file.display()),
+                        kv,
+                    )
+                    .expect("Invalid env for env-file"),
+                ]
             });
 
+        let volume_flags = self.volumes.as_ref().map_or(vec![], |volumes| {
+            volumes
+                .iter()
+                .flat_map(|volume| {
+                    vec![
+                        "-v".to_string(),
+                        interpolate_host_envs(volume, kv)
+                            .expect("Invalid env for volumes"),
+                    ]
+                })
+                .collect()
+        });
+
+        let extra_flags =
+            self.extra_flags.as_ref().map_or(vec![], |extra_flags| {
+                extra_flags
+                    .iter()
+                    .map(|extra_flag| {
+                        interpolate_host_envs(extra_flag, kv)
+                            .expect("Invalid env for extra flags")
+                    })
+                    .collect()
+            });
+
+        let image = interpolate_host_envs(&self.image, kv)?;
+
         let args = [
+            // Command with default flags
             &["run".to_string()],
             &["--rm".to_string()],
+            // Optional flags
+            &entrypoint_flag[..],
             &env_flags[..],
             &env_file_flags[..],
-            &[interpolate_host_envs(&self.image, kv)?],
+            &volume_flags[..],
+            &extra_flags[..],
+            // Mandatory fields
+            &[image],
             &command_flags[..],
         ]
         .concat();
@@ -96,10 +148,15 @@ mod tests {
         DockerRun {
             image: image.to_string(),
             help: None,
+            interactive: None,
+            tty: None,
             command: None,
             entrypoint: None,
             envs: None,
             env_file: None,
+            volumes: None,
+            user: None,
+            extra_flags: None,
         }
     }
 
@@ -109,6 +166,6 @@ mod tests {
         dr.command = Some(vec!["cargo".to_string(), "--version".to_string()]);
 
         let docker_cmd = get_cli_path().unwrap();
-        dr.run(&docker_cmd).unwrap();
+        dr.run(&docker_cmd, &HashMap::new()).unwrap();
     }
 }

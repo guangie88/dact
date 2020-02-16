@@ -89,7 +89,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         DactSubOpt::Run { action } => match config.get(&action) {
             Some(dr) => dr.run(&docker_cmd, &kv)?,
             None => {
-                eprintln!("Dact action [{}] does not exist!", action.blue());
+                eprintln!(
+                    "Dact action [{}] does not exist!",
+                    action.blue().bold()
+                );
                 exit(DACT_ACTION_MISSING);
             }
         },
