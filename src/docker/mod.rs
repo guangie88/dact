@@ -62,7 +62,7 @@ impl DockerRun {
                 ]
             });
 
-        let env_flags = self.envs.as_ref().map_or(vec![], |envs| {
+        let envs_flags = self.envs.as_ref().map_or(vec![], |envs| {
             envs.iter()
                 .flat_map(|(k, v)| {
                     vec![
@@ -86,7 +86,7 @@ impl DockerRun {
                 ]
             });
 
-        let volume_flags = self.volumes.as_ref().map_or(vec![], |volumes| {
+        let volumes_flags = self.volumes.as_ref().map_or(vec![], |volumes| {
             volumes
                 .iter()
                 .flat_map(|volume| {
@@ -97,6 +97,13 @@ impl DockerRun {
                     ]
                 })
                 .collect()
+        });
+
+        let user_flags = self.user.as_ref().map_or(vec![], |user| {
+            vec![
+                "-u".to_string(),
+                interpolate_host_envs(user, kv).expect("Invalid env for user"),
+            ]
         });
 
         let extra_flags =
@@ -118,9 +125,10 @@ impl DockerRun {
             &["--rm".to_string()],
             // Optional flags
             &entrypoint_flag[..],
-            &env_flags[..],
+            &envs_flags[..],
             &env_file_flags[..],
-            &volume_flags[..],
+            &volumes_flags[..],
+            &user_flags[..],
             &extra_flags[..],
             // Mandatory fields
             &[image],

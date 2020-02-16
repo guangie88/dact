@@ -20,3 +20,10 @@ command = ["-c", "echo ${ABC}"]
 
   [echo.envs]
   ABC = "Hello World!"
+
+[user]
+help = "Echo user"
+image = "alpine:3.11"
+entrypoint = "sh"
+command = ["-c", "echo ${USER}"]
+user = "{{ USER }}"
