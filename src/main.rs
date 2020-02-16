@@ -4,6 +4,7 @@ mod docker;
 use colored::*;
 use serde_yaml;
 use std::collections::HashMap;
+use std::env;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -73,6 +74,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let config = get_config()?;
     let docker_cmd = docker::get_cli_path()?;
 
+    let kv: HashMap<String, String> = env::vars().into_iter().collect();
+
     match opt.sub {
         DactSubOpt::List => {
             for (action, dr) in config.iter() {
@@ -84,7 +87,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
         DactSubOpt::Run { action } => match config.get(&action) {
-            Some(dr) => dr.run(&docker_cmd)?,
+            Some(dr) => dr.run(&docker_cmd, &kv)?,
             None => {
                 eprintln!("Dact action [{}] does not exist!", action.blue());
                 exit(DACT_ACTION_MISSING);
