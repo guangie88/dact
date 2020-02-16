@@ -3,7 +3,7 @@ mod docker;
 
 use colored::*;
 use serde_yaml;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::env;
 use std::error::Error;
 use std::fs;
@@ -78,7 +78,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     match opt.sub {
         DactSubOpt::List => {
-            for (action, dr) in config.iter() {
+            let sorted_config: BTreeMap<_, _> = config.iter().collect();
+
+            for (action, dr) in sorted_config.iter() {
                 if let Some(help) = &dr.help {
                     println!("{} - {}", action.blue().bold(), help);
                 } else {
