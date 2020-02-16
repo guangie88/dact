@@ -1,4 +1,3 @@
-use mustache;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
@@ -7,6 +6,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str;
 use which::which;
+
+mod fmt;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DockerRun {
@@ -25,30 +26,29 @@ pub struct DockerRun {
     pub extra_flags: Option<Vec<String>>,
 }
 
-pub fn interpolate_host_envs(
-    raw: &str,
-    kv: &HashMap<String, String>,
-) -> Result<String, Box<dyn Error>> {
-    let tmpl = mustache::compile_str(raw)?;
-    let mut buf = Vec::new();
-    tmpl.render(&mut buf, &kv)?;
+pub fn shell_interpolate(raw: &str) -> Result<String, Box<dyn Error>> {
+    fmt::shell_interpolate(raw, &|cmd| {
+        let output = if cfg!(target_os = "windows") {
+            Command::new("cmd").args(&["/C", cmd]).output()?
+        } else {
+            Command::new("sh").args(&["-c", cmd]).output()?
+        };
 
-    let rendered_str = str::from_utf8(&buf)?;
-    Ok(rendered_str.to_string())
+        Ok(str::from_utf8(&output.stdout)?.trim_end().to_string())
+    })
 }
 
 impl DockerRun {
     pub fn run(
         &self,
         docker_cmd: &Path,
-        kv: &HashMap<String, String>,
+        _kv: &HashMap<String, String>,
     ) -> Result<(), Box<dyn Error>> {
         // Convert all options into flags
         let command_flags = self.command.as_ref().map_or(vec![], |cmds| {
             cmds.iter()
                 .map(|cmd| {
-                    interpolate_host_envs(cmd, kv)
-                        .expect("Invalid env for cmds")
+                    shell_interpolate(cmd).expect("Invalid env for cmds")
                 })
                 .collect()
         });
@@ -57,7 +57,7 @@ impl DockerRun {
             self.entrypoint.as_ref().map_or(vec![], |entrypoint| {
                 vec![
                     "--entrypoint".to_string(),
-                    interpolate_host_envs(entrypoint, kv)
+                    shell_interpolate(entrypoint)
                         .expect("Invalid env for entrypoint"),
                 ]
             });
@@ -67,7 +67,7 @@ impl DockerRun {
                 .flat_map(|(k, v)| {
                     vec![
                         "-e".to_string(),
-                        interpolate_host_envs(&format!("{}={}", k, v), kv)
+                        shell_interpolate(&format!("{}={}", k, v))
                             .expect("Invalid env for envs"),
                     ]
                 })
@@ -78,11 +78,8 @@ impl DockerRun {
             self.env_file.as_ref().map_or(vec![], |env_file| {
                 vec![
                     "--env-file".to_string(),
-                    interpolate_host_envs(
-                        &format!("{}", env_file.display()),
-                        kv,
-                    )
-                    .expect("Invalid env for env-file"),
+                    shell_interpolate(&format!("{}", env_file.display()))
+                        .expect("Invalid env for env-file"),
                 ]
             });
 
@@ -92,7 +89,7 @@ impl DockerRun {
                 .flat_map(|volume| {
                     vec![
                         "-v".to_string(),
-                        interpolate_host_envs(volume, kv)
+                        shell_interpolate(volume)
                             .expect("Invalid env for volumes"),
                     ]
                 })
@@ -102,7 +99,7 @@ impl DockerRun {
         let user_flags = self.user.as_ref().map_or(vec![], |user| {
             vec![
                 "-u".to_string(),
-                interpolate_host_envs(user, kv).expect("Invalid env for user"),
+                shell_interpolate(user).expect("Invalid env for user"),
             ]
         });
 
@@ -111,13 +108,13 @@ impl DockerRun {
                 extra_flags
                     .iter()
                     .map(|extra_flag| {
-                        interpolate_host_envs(extra_flag, kv)
+                        shell_interpolate(extra_flag)
                             .expect("Invalid env for extra flags")
                     })
                     .collect()
             });
 
-        let image = interpolate_host_envs(&self.image, kv)?;
+        let image = shell_interpolate(&self.image)?;
 
         let args = [
             // Command with default flags

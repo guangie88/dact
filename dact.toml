@@ -25,5 +25,5 @@ command = ["-c", "echo ${ABC}"]
 help = "Echo user"
 image = "alpine:3.11"
 entrypoint = "sh"
-command = ["-c", "echo ${USER}"]
-user = "$(id -u):$(id -g)"
+command = ["-c", "id -u"]
+user = "#{id -u}:#{id -g}"
