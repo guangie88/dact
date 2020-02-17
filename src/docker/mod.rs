@@ -21,6 +21,8 @@ pub struct DockerRun {
     pub entrypoint: Option<String>,
     pub envs: Option<HashMap<String, String>>,
     pub env_file: Option<PathBuf>,
+    pub network: Option<String>,
+    pub ports: Option<Vec<String>>,
     pub volumes: Option<Vec<String>>,
     pub user: Option<String>,
     pub extra_flags: Option<Vec<String>>,
@@ -83,6 +85,23 @@ impl DockerRun {
                 ]
             });
 
+        let network_flags = self.network.as_ref().map_or(vec![], |network| {
+            vec![shell_interpolate(&format!("--network={}", network))
+                .expect("Invalid env for env-file")]
+        });
+
+        let ports_flags = self.ports.as_ref().map_or(vec![], |ports| {
+            ports
+                .iter()
+                .flat_map(|port| {
+                    vec![
+                        "-p".to_string(),
+                        shell_interpolate(port).expect("Invalid env for ports"),
+                    ]
+                })
+                .collect()
+        });
+
         let volumes_flags = self.volumes.as_ref().map_or(vec![], |volumes| {
             volumes
                 .iter()
@@ -124,6 +143,8 @@ impl DockerRun {
             &entrypoint_flag[..],
             &envs_flags[..],
             &env_file_flags[..],
+            &network_flags[..],
+            &ports_flags[..],
             &volumes_flags[..],
             &user_flags[..],
             &extra_flags[..],

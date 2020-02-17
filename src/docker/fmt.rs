@@ -67,8 +67,13 @@ mod tests {
     #[test]
     fn test_shell_interpolate_single() {
         let interpolated = shell_interpolate("#{abc}", &|extract| {
-            Ok(if extract == "abc" { "YES".to_string() } else { "NO".to_string() })
-        }).unwrap();
+            Ok(if extract == "abc" {
+                "YES".to_string()
+            } else {
+                "NO".to_string()
+            })
+        })
+        .unwrap();
 
         assert_eq!(interpolated, "YES");
     }
@@ -76,8 +81,13 @@ mod tests {
     #[test]
     fn test_shell_interpolate_multiple() {
         let interpolated = shell_interpolate("#{abc}:#{def}", &|extract| {
-            Ok(if extract == "abc" { "YES".to_string() } else { "NO".to_string() })
-        }).unwrap();
+            Ok(if extract == "abc" {
+                "YES".to_string()
+            } else {
+                "NO".to_string()
+            })
+        })
+        .unwrap();
 
         assert_eq!(interpolated, "YES:NO");
     }
