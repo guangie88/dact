@@ -1,3 +1,4 @@
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
@@ -9,22 +10,45 @@ use which::which;
 
 mod fmt;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Builder, Serialize, Deserialize)]
+#[builder(setter(into))]
 pub struct DockerRun {
     pub image: String,
+
+    #[builder(default = "None")]
     pub help: Option<String>,
 
+    #[builder(default = "None")]
     pub interactive: Option<bool>,
+
+    #[builder(default = "None")]
     pub tty: Option<bool>,
 
+    #[builder(default = "None")]
     pub command: Option<Vec<String>>,
+
+    #[builder(default = "None")]
     pub entrypoint: Option<String>,
+
+    #[builder(default = "None")]
     pub envs: Option<HashMap<String, String>>,
+
+    #[builder(default = "None")]
     pub env_file: Option<PathBuf>,
+
+    #[builder(default = "None")]
     pub network: Option<String>,
+
+    #[builder(default = "None")]
     pub ports: Option<Vec<String>>,
+
+    #[builder(default = "None")]
     pub volumes: Option<Vec<String>>,
+
+    #[builder(default = "None")]
     pub user: Option<String>,
+
+    #[builder(default = "None")]
     pub extra_flags: Option<Vec<String>>,
 }
 
@@ -171,19 +195,10 @@ mod tests {
     use super::*;
 
     fn make_dockerrun(image: &str) -> DockerRun {
-        DockerRun {
-            image: image.to_string(),
-            help: None,
-            interactive: None,
-            tty: None,
-            command: None,
-            entrypoint: None,
-            envs: None,
-            env_file: None,
-            volumes: None,
-            user: None,
-            extra_flags: None,
-        }
+        DockerRunBuilder::default()
+            .image(image.to_string())
+            .build()
+            .unwrap()
     }
 
     #[test]
