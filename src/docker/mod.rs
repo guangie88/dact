@@ -2,7 +2,6 @@ use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
-use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str;
@@ -178,10 +177,8 @@ impl DockerRun {
         ]
         .concat();
 
-        let output = Command::new(docker_cmd).args(args).output()?;
-
-        io::stdout().write_all(&output.stdout)?;
-        io::stderr().write_all(&output.stderr)?;
+        let mut child = Command::new(docker_cmd).args(args).spawn()?;
+        let _code = child.wait()?;
         Ok(())
     }
 }
