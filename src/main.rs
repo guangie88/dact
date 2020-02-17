@@ -44,29 +44,33 @@ fn get_config() -> Result<DactConfig, Box<dyn Error>> {
     let yaml_path = Path::new(DACT_CONFIG_YAML_PATH);
     let toml_path = Path::new(DACT_CONFIG_TOML_PATH);
 
-    if yaml_path.exists() && toml_path.exists() {
-        eprintln!("Multiple Dact config files detected, only one config file allowed!");
-        exit(MULTIPLE_CONFIG_FOUND);
+    let yaml_exists = yaml_path.exists();
+    let toml_exists = toml_path.exists();
+
+    match (yaml_exists, toml_exists) {
+        (true, true) => {
+            eprintln!("Multiple Dact config files detected, only one config file allowed!");
+            exit(MULTIPLE_CONFIG_FOUND);
+        }
+        (false, false) => {
+            eprintln!(
+                "Both {} and {} do not exist, need a config file to proceed.",
+                DACT_CONFIG_YAML_PATH, DACT_CONFIG_TOML_PATH
+            );
+
+            exit(CONFIG_MISSING);
+        }
+        (true, _) => {
+            let config_str = fs::read_to_string(&toml_path)?;
+            let config: DactConfig = serde_yaml::from_str(&config_str)?;
+            Ok(config)
+        }
+        (_, true) => {
+            let config_str = fs::read_to_string(&toml_path)?;
+            let config: DactConfig = toml::from_str(&config_str)?;
+            Ok(config)
+        }
     }
-
-    if yaml_path.exists() {
-        let config_str = fs::read_to_string(&toml_path)?;
-        let config: DactConfig = serde_yaml::from_str(&config_str)?;
-        return Ok(config);
-    }
-
-    if toml_path.exists() {
-        let config_str = fs::read_to_string(&toml_path)?;
-        let config: DactConfig = toml::from_str(&config_str)?;
-        return Ok(config);
-    }
-
-    eprintln!(
-        "Both {} and {} do not exist, need a config file to proceed.",
-        DACT_CONFIG_YAML_PATH, DACT_CONFIG_TOML_PATH
-    );
-
-    exit(CONFIG_MISSING);
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
