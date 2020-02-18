@@ -88,7 +88,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 if let Some(help) = &dr.help {
                     println!("{} - {}", action.blue().bold(), help);
                 } else {
-                    println!("{}", action);
+                    println!("{}", action.blue().bold());
                 }
             }
         }
