@@ -1,6 +1,7 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::default::Default;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -9,10 +10,24 @@ use which::which;
 
 mod fmt;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Context {
+    Image(String),
+    Build(String),
+}
+
+impl Default for Context {
+    fn default() -> Self {
+        Context::Image("".to_string())
+    }
+}
+
 #[derive(Debug, Default, Builder, Serialize, Deserialize)]
 #[builder(setter(into))]
 pub struct DockerRun {
-    pub image: String,
+    #[serde(flatten)]
+    pub context: Context,
 
     #[builder(default = "None")]
     pub help: Option<String>,
@@ -156,30 +171,35 @@ impl DockerRun {
                     .collect()
             });
 
-        let image = shell_interpolate(&self.image)?;
+        match self.context {
+            Context::Image(ref image) => {
+                let image = shell_interpolate(image)?;
 
-        let args = [
-            // Command with default flags
-            &["run".to_string()],
-            &["--rm".to_string()],
-            // Optional flags
-            &entrypoint_flag[..],
-            &envs_flags[..],
-            &env_file_flags[..],
-            &network_flags[..],
-            &ports_flags[..],
-            &volumes_flags[..],
-            &user_flags[..],
-            &extra_flags[..],
-            // Mandatory fields
-            &[image],
-            &command_flags[..],
-        ]
-        .concat();
+                let args = [
+                    // Command with default flags
+                    &["run".to_string()],
+                    &["--rm".to_string()],
+                    // Optional flags
+                    &entrypoint_flag[..],
+                    &envs_flags[..],
+                    &env_file_flags[..],
+                    &network_flags[..],
+                    &ports_flags[..],
+                    &volumes_flags[..],
+                    &user_flags[..],
+                    &extra_flags[..],
+                    // Mandatory fields
+                    &[image],
+                    &command_flags[..],
+                ]
+                .concat();
 
-        let mut child = Command::new(docker_cmd).args(args).spawn()?;
-        let _code = child.wait()?;
-        Ok(())
+                let mut child = Command::new(docker_cmd).args(args).spawn()?;
+                let _code = child.wait()?;
+                Ok(())
+            }
+            Context::Build(ref _path) => unimplemented!(),
+        }
     }
 }
 

@@ -14,7 +14,7 @@ command = ["cargo", "--version"]
 
 [echo]
 help = "Echo env var"
-image = "alpine:3.11"
+build = "./Dockerfile"
 entrypoint = "sh"
 command = ["-c", "echo ${ABC}"]
 
