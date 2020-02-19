@@ -53,19 +53,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dact"
-version = "0.1.0"
-dependencies = [
- "colored",
- "derive_builder",
- "serde",
- "serde_yaml",
- "structopt",
- "toml",
- "which",
-]
-
-[[package]]
 name = "darling"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -123,6 +110,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "drun"
+version = "0.1.0"
+dependencies = [
+ "colored",
+ "derive_builder",
+ "serde",
+ "serde_yaml",
+ "structopt",
+ "toml",
+ "which",
 ]
 
 [[package]]
