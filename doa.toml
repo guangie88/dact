@@ -1,25 +1,36 @@
+# __version__ = "1.0"
+
+#
+# Shared variables
+#
+
+# __hostuser__ = "#{id -u}:#{id -g}"
+# __common_cmd__ = ["cargo", "--version"]
+
+#
+# Actions
+#
+
 [rustc]
 help = "Get version of rustc"
 image = "clux/muslrust:stable"
 command = ["rustc", "--version"]
 
-[cargo]
-help = "Get version of cargo"
-image = "clux/muslrust:stable"
-command = ["cargo", "--version"]
-
-  [cargo.envs]
-  OPT_LEVEL = "3"
-  DEBUG = "true"
-
-[echo]
+[msg]
 help = "Echo env var"
-build = "./Dockerfile"
+image = "alpine:3.11"
 entrypoint = "sh"
-command = ["-c", "echo ${ABC}"]
+command = ["-c", "echo ${HEADING} - ${MSG}"]
 
-  [echo.envs]
-  ABC = "Hello World!"
+  [msg.envs]
+  HEADING = "This is a header"
+  MSG = "#{echo $MSG}"  # Comes from .doa.env
+
+[color]
+help = "Print colored text"
+image = "alpine:3.11"
+entrypoint = "sh"
+command = ["-c", "echo -e 'This is \\e[91mRED\\e[39m!'"]
 
 [user]
 help = "Echo user"
@@ -27,3 +38,7 @@ image = "alpine:3.11"
 entrypoint = "sh"
 command = ["-c", "id -u"]
 user = "#{id -u}:#{id -g}"
+
+[not-yet-impl]
+help = "Not yet implemented"
+build = "./Dockerfile"

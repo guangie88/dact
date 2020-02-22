@@ -82,7 +82,7 @@ impl DockerRun {
     pub fn run(
         &self,
         docker_cmd: &Path,
-        _kv: &HashMap<String, String>,
+        _envs: &HashMap<String, String>,
     ) -> Result<(), Box<dyn Error>> {
         // Convert all options into flags
         let command_flags = self.command.as_ref().map_or(vec![], |cmds| {

@@ -2,6 +2,7 @@
 mod docker;
 
 use colored::*;
+use dotenv;
 use serde_yaml;
 use std::collections::{BTreeMap, HashMap};
 use std::env;
@@ -14,11 +15,12 @@ use toml;
 
 type DoaConfig = HashMap<String, docker::DockerRun>;
 
-const DRUN_CONFIG_TOML_PATH: &str = "doa.toml";
-const DRUN_CONFIG_YAML_PATH: &str = "doa.yml";
+const DOA_CONFIG_TOML_PATH: &str = "doa.toml";
+const DOA_CONFIG_YAML_PATH: &str = "doa.yml";
+const DOA_ENV_FILE_PATH: &str = ".doa.env";
 
 // Exit status codes
-const DRUN_ACTION_MISSING: i32 = 1;
+const DOA_ACTION_MISSING: i32 = 1;
 const CONFIG_MISSING: i32 = 10;
 const MULTIPLE_CONFIG_FOUND: i32 = 11;
 
@@ -28,7 +30,12 @@ enum DoaSubOpt {
     List,
 
     /// Runs a doa action
-    Run { action: String },
+    Run {
+        action: String,
+
+        #[structopt(long)]
+        disable_envfile: bool,
+    },
 }
 
 #[derive(Debug, StructOpt)]
@@ -41,8 +48,8 @@ struct DoaOpt {
 }
 
 fn get_config() -> Result<DoaConfig, Box<dyn Error>> {
-    let yaml_path = Path::new(DRUN_CONFIG_YAML_PATH);
-    let toml_path = Path::new(DRUN_CONFIG_TOML_PATH);
+    let yaml_path = Path::new(DOA_CONFIG_YAML_PATH);
+    let toml_path = Path::new(DOA_CONFIG_TOML_PATH);
 
     let yaml_exists = yaml_path.exists();
     let toml_exists = toml_path.exists();
@@ -55,7 +62,7 @@ fn get_config() -> Result<DoaConfig, Box<dyn Error>> {
         (false, false) => {
             eprintln!(
                 "Both {} and {} do not exist, need a config file to proceed.",
-                DRUN_CONFIG_YAML_PATH, DRUN_CONFIG_TOML_PATH
+                DOA_CONFIG_YAML_PATH, DOA_CONFIG_TOML_PATH
             );
 
             exit(CONFIG_MISSING);
@@ -78,8 +85,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let config = get_config()?;
     let docker_cmd = docker::get_cli_path()?;
 
-    let kv: HashMap<String, String> = env::vars().into_iter().collect();
-
     match opt.sub {
         DoaSubOpt::List => {
             let sorted_config: BTreeMap<_, _> = config.iter().collect();
@@ -92,14 +97,26 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         }
-        DoaSubOpt::Run { action } => match config.get(&action) {
-            Some(dr) => dr.run(&docker_cmd, &kv)?,
+        DoaSubOpt::Run {
+            action,
+            disable_envfile,
+        } => match config.get(&action) {
+            Some(dr) => {
+                if !disable_envfile && Path::new(DOA_ENV_FILE_PATH).exists() {
+                    dotenv::from_filename(DOA_ENV_FILE_PATH)?;
+                }
+
+                let envs: HashMap<String, String> =
+                    env::vars().into_iter().collect();
+
+                dr.run(&docker_cmd, &envs)?
+            }
             None => {
                 eprintln!(
                     "Doa action [{}] does not exist!",
                     action.blue().bold()
                 );
-                exit(DRUN_ACTION_MISSING);
+                exit(DOA_ACTION_MISSING);
             }
         },
     }

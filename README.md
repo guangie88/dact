@@ -1,4 +1,4 @@
-# **D**ocker **RUN**
+# **DO**cker **A**ction
 
 Simplify `docker run` with `Makefile`-ish configuration.
 
