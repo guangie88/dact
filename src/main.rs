@@ -31,8 +31,10 @@ enum DoaSubOpt {
 
     /// Runs a doa action
     Run {
+        /// Action to run
         action: String,
 
+        /// Reads `.doa.env` as env file by default. Set flag to disable this
         #[structopt(long)]
         disable_envfile: bool,
     },
