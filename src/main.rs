@@ -12,10 +12,10 @@ use std::process::exit;
 use structopt::StructOpt;
 use toml;
 
-type DrunConfig = HashMap<String, docker::DockerRun>;
+type DoaConfig = HashMap<String, docker::DockerRun>;
 
-const DRUN_CONFIG_TOML_PATH: &str = "drun.toml";
-const DRUN_CONFIG_YAML_PATH: &str = "drun.yml";
+const DRUN_CONFIG_TOML_PATH: &str = "doa.toml";
+const DRUN_CONFIG_YAML_PATH: &str = "doa.yml";
 
 // Exit status codes
 const DRUN_ACTION_MISSING: i32 = 1;
@@ -23,24 +23,24 @@ const CONFIG_MISSING: i32 = 10;
 const MULTIPLE_CONFIG_FOUND: i32 = 11;
 
 #[derive(Debug, StructOpt)]
-enum DrunSubOpt {
-    /// Lists all possible drun actions
+enum DoaSubOpt {
+    /// Lists all possible doa actions
     List,
 
-    /// Runs a drun action
+    /// Runs a doa action
     Run { action: String },
 }
 
 #[derive(Debug, StructOpt)]
 #[structopt(
-    about = "Drun - Simplify running batch action within Docker container"
+    about = "Doa - Simplify running batch action within Docker container"
 )]
-struct DrunOpt {
+struct DoaOpt {
     #[structopt(subcommand)]
-    sub: DrunSubOpt,
+    sub: DoaSubOpt,
 }
 
-fn get_config() -> Result<DrunConfig, Box<dyn Error>> {
+fn get_config() -> Result<DoaConfig, Box<dyn Error>> {
     let yaml_path = Path::new(DRUN_CONFIG_YAML_PATH);
     let toml_path = Path::new(DRUN_CONFIG_TOML_PATH);
 
@@ -49,7 +49,7 @@ fn get_config() -> Result<DrunConfig, Box<dyn Error>> {
 
     match (yaml_exists, toml_exists) {
         (true, true) => {
-            eprintln!("Multiple Drun config files detected, only one config file allowed!");
+            eprintln!("Multiple Doa config files detected, only one config file allowed!");
             exit(MULTIPLE_CONFIG_FOUND);
         }
         (false, false) => {
@@ -62,26 +62,26 @@ fn get_config() -> Result<DrunConfig, Box<dyn Error>> {
         }
         (true, _) => {
             let config_str = fs::read_to_string(&toml_path)?;
-            let config: DrunConfig = serde_yaml::from_str(&config_str)?;
+            let config: DoaConfig = serde_yaml::from_str(&config_str)?;
             Ok(config)
         }
         (_, true) => {
             let config_str = fs::read_to_string(&toml_path)?;
-            let config: DrunConfig = toml::from_str(&config_str)?;
+            let config: DoaConfig = toml::from_str(&config_str)?;
             Ok(config)
         }
     }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let opt = DrunOpt::from_args();
+    let opt = DoaOpt::from_args();
     let config = get_config()?;
     let docker_cmd = docker::get_cli_path()?;
 
     let kv: HashMap<String, String> = env::vars().into_iter().collect();
 
     match opt.sub {
-        DrunSubOpt::List => {
+        DoaSubOpt::List => {
             let sorted_config: BTreeMap<_, _> = config.iter().collect();
 
             for (action, dr) in sorted_config.iter() {
@@ -92,11 +92,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         }
-        DrunSubOpt::Run { action } => match config.get(&action) {
+        DoaSubOpt::Run { action } => match config.get(&action) {
             Some(dr) => dr.run(&docker_cmd, &kv)?,
             None => {
                 eprintln!(
-                    "Drun action [{}] does not exist!",
+                    "Doa action [{}] does not exist!",
                     action.blue().bold()
                 );
                 exit(DRUN_ACTION_MISSING);
