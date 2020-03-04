@@ -13,7 +13,7 @@ use std::process::exit;
 use structopt::StructOpt;
 use toml;
 
-type DoaConfig = HashMap<String, docker::DockerRun>;
+type DoaConfig = HashMap<String, docker::Action>;
 
 const DOA_CONFIG_TOML_PATH: &str = "doa.toml";
 const DOA_CONFIG_YAML_PATH: &str = "doa.yml";

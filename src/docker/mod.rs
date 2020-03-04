@@ -25,7 +25,7 @@ impl Default for Context {
 
 #[derive(Debug, Default, Builder, Serialize, Deserialize)]
 #[builder(setter(into))]
-pub struct DockerRun {
+pub struct Action {
     #[serde(flatten)]
     #[builder()]
     pub context: Context,
@@ -79,7 +79,7 @@ pub fn shell_interpolate(raw: &str) -> Result<String, Box<dyn Error>> {
     })
 }
 
-impl DockerRun {
+impl Action {
     pub fn run(
         &self,
         docker_cmd: &Path,
@@ -212,8 +212,8 @@ pub fn get_cli_path() -> Result<PathBuf, which::Error> {
 mod tests {
     use super::*;
 
-    fn make_dockerrun(image: &str) -> DockerRun {
-        DockerRunBuilder::default()
+    fn make_dockerrun(image: &str) -> Action {
+        ActionBuilder::default()
             .context(Context::Image(image.to_string()))
             .build()
             .unwrap()
