@@ -27,6 +27,7 @@ impl Default for Context {
 #[builder(setter(into))]
 pub struct DockerRun {
     #[serde(flatten)]
+    #[builder()]
     pub context: Context,
 
     #[builder(default = "None")]
@@ -213,7 +214,7 @@ mod tests {
 
     fn make_dockerrun(image: &str) -> DockerRun {
         DockerRunBuilder::default()
-            .image(image.to_string())
+            .context(Context::Image(image.to_string()))
             .build()
             .unwrap()
     }
