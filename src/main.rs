@@ -1,6 +1,9 @@
 // #![deny(warnings)]
 mod docker;
 
+use crate::docker::conf::v1_0::Conf;
+// use crate::docker::{Actions, Help, Run};
+use crate::docker::Help;
 use colored::*;
 use dotenv;
 use serde_yaml;
@@ -12,8 +15,6 @@ use std::path::Path;
 use std::process::exit;
 use structopt::StructOpt;
 use toml;
-
-type DoaConfig = HashMap<String, docker::Action>;
 
 const DOA_CONFIG_TOML_PATH: &str = "doa.toml";
 const DOA_CONFIG_YAML_PATH: &str = "doa.yml";
@@ -49,7 +50,7 @@ struct DoaOpt {
     sub: DoaSubOpt,
 }
 
-fn get_config() -> Result<DoaConfig, Box<dyn Error>> {
+fn get_config() -> Result<Conf, Box<dyn Error>> {
     let yaml_path = Path::new(DOA_CONFIG_YAML_PATH);
     let toml_path = Path::new(DOA_CONFIG_TOML_PATH);
 
@@ -71,12 +72,12 @@ fn get_config() -> Result<DoaConfig, Box<dyn Error>> {
         }
         (true, _) => {
             let config_str = fs::read_to_string(&toml_path)?;
-            let config: DoaConfig = serde_yaml::from_str(&config_str)?;
+            let config: Conf = serde_yaml::from_str(&config_str)?;
             Ok(config)
         }
         (_, true) => {
             let config_str = fs::read_to_string(&toml_path)?;
-            let config: DoaConfig = toml::from_str(&config_str)?;
+            let config: Conf = toml::from_str(&config_str)?;
             Ok(config)
         }
     }
@@ -89,10 +90,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     match opt.sub {
         DoaSubOpt::List => {
-            let sorted_config: BTreeMap<_, _> = config.iter().collect();
+            let actions = config.actions;
+            let sorted_config: BTreeMap<_, _> = actions.iter().collect();
 
             for (action, dr) in sorted_config.iter() {
-                if let Some(help) = &dr.help {
+                if let Some(help) = &dr.help() {
                     println!("{} - {}", action.blue().bold(), help);
                 } else {
                     println!("{}", action.blue().bold());
@@ -102,15 +104,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         DoaSubOpt::Run {
             action,
             disable_envfile,
-        } => match config.get(&action) {
+        } => match config.actions.get(&action) {
             Some(dr) => {
                 if !disable_envfile && Path::new(DOA_ENV_FILE_PATH).exists() {
                     dotenv::from_filename(DOA_ENV_FILE_PATH)?;
                 }
 
-                let envs: HashMap<String, String> =
-                    env::vars().into_iter().collect();
-
+                let envs: HashMap<String, String> = env::vars().collect();
                 dr.run(&docker_cmd, &envs)?
             }
             None => {
