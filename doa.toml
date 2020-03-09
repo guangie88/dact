@@ -41,4 +41,4 @@ user = "#{id -u}:#{id -g}"
 
 [not-yet-impl]
 help = "Not yet implemented"
-build = "./Dockerfile"
+build = { path = "./Dockerfile", name = "not-yet-impl" }

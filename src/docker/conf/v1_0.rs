@@ -23,7 +23,7 @@ impl Default for Version {
 #[serde(rename_all = "snake_case")]
 pub enum Context {
     Image(String),
-    Build(String),
+    Build { path: String, name: String },
 }
 
 impl Default for Context {
@@ -201,7 +201,13 @@ impl Action {
                 let _code = child.wait()?;
                 Ok(())
             }
-            Context::Build(ref _path) => unimplemented!(),
+            Context::Build { ref path, ref name } => {
+                let mut child = Command::new(docker_cmd)
+                    .args(&["build", "-f", path, "-t", name])
+                    .spawn()?;
+                let _code = child.wait()?;
+                Ok(())
+            }
         }
     }
 }
